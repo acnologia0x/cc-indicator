@@ -1,0 +1,11 @@
+//@version=5
+indicator("$cc", overlay=false)
+ema50 = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+atr1 = ta.atr(1)
+atr14 = ta.atr(14)
+plot(close, color=color.gray, title="Line Chart", force_overlay=true)
+plot(ema50, color=color.blue, title="50 EMA", force_overlay=true)
+plot(ema200, color=color.red, title="200 EMA", force_overlay=true)
+plot(atr1, color=color.white, title="ATR(1)")
+plot(atr14, color=color.yellow, title="ATR(14)")
