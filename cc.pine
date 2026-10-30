@@ -10,39 +10,61 @@ plot(ema200, color=color.red, title="200 EMA", force_overlay=true)
 plot(atr1, color=color.white, title="ATR(1)")
 plot(atr14, color=color.yellow, title="ATR(14)")
 
-// --- Trading Sessions Configuration (UTC) ---
-session_tz = "UTC"
-tokyo_session  = input.session("0000-0900", title="Tokyo Session (UTC)")
-london_session = input.session("0800-1630", title="London Session (UTC)")
-ny_session     = input.session("1330-2000", title="New York Session (UTC)")
+// Timezone Setup
+tz = input.string("America/New_York", "Timezone")
 
-// Session In-Window Checks
-in_tokyo  = not na(time(timeframe.period, tokyo_session,  session_tz))
-in_london = not na(time(timeframe.period, london_session, session_tz))
-in_ny     = not na(time(timeframe.period, ny_session,     session_tz))
+// Session 1 Setup
+sess1 = input.session("1900-0300", "Session 1 Time")
+name1 = input.string("Asia", "Session 1 Name")
 
-// Transition Detection
-tokyo_open   = in_tokyo  and not in_tokyo[1]
-tokyo_close  = not in_tokyo  and in_tokyo[1]
+// Session 2 Setup
+sess2 = input.session("0300-1130", "Session 2 Time")
+name2 = input.string("London", "Session 2 Name")
 
-london_open  = in_london and not in_london[1]
-london_close = not in_london and in_london[1]
+// Session 3 Setup
+sess3 = input.session("0930-1600", "Session 3 Time")
+name3 = input.string("New York", "Session 3 Name")
 
-ny_open      = in_ny     and not in_ny[1]
-ny_close     = not in_ny     and in_ny[1]
+// Check if current bar is inside each session
+in1 = not na(time(timeframe.period, sess1, tz))
+in2 = not na(time(timeframe.period, sess2, tz))
+in3 = not na(time(timeframe.period, sess3, tz))
 
-// Function to draw subtle vertical markers and labels on the main chart
-draw_session_marker(condition, txt, mark_color) =>
-    if condition and timeframe.isintraday
-        line.new(bar_index, high, bar_index, low, xloc=xloc.bar_index, extend=extend.both, color=color.new(mark_color, 80), style=line.style_dashed, width=1, force_overlay=true)
-        label.new(bar_index, high, text=txt, xloc=xloc.bar_index, yloc=yloc.abovebar, color=color.new(color.black, 100), textcolor=mark_color, size=size.small, style=label.style_none, force_overlay=true)
+// Detect when each session transitions to closed
+closed1 = not in1 and in1[1]
+closed2 = not in2 and in2[1]
+closed3 = not in3 and in3[1]
 
-// --- Plot Markers ---
-draw_session_marker(tokyo_open,   "Tokyo Open",    color.purple)
-draw_session_marker(tokyo_close,  "Tokyo Closed",  color.purple)
+// Store the name of the last closed session
+var string lastClosed = "None yet"
 
-draw_session_marker(london_open,  "London Open",   color.teal)
-draw_session_marker(london_close, "London Closed", color.teal)
+if closed1
+    lastClosed := name1
+if closed2
+    lastClosed := name2
+if closed3
+    lastClosed := name3
 
-draw_session_marker(ny_open,      "New York Open", color.blue)
-draw_session_marker(ny_close,     "New York Closed", color.blue)
+// Build a text string of all currently open sessions
+string currentOpen = ""
+
+if in1
+    currentOpen := currentOpen == "" ? name1 : currentOpen + ", " + name1
+if in2
+    currentOpen := currentOpen == "" ? name2 : currentOpen + ", " + name2
+if in3
+    currentOpen := currentOpen == "" ? name3 : currentOpen + ", " + name3
+
+if currentOpen == ""
+    currentOpen := "None"
+
+// Create the display table
+var table infoTable = table.new(position.bottom_right, 2, 2, bgcolor=color.new(color.black, 80), border_color=color.gray, border_width=1)
+
+// Update table on the live candle
+if barstate.islast
+    table.cell(infoTable, 0, 0, "Currently Open:", text_color=color.white)
+    table.cell(infoTable, 1, 0, currentOpen, text_color=color.green)
+    
+    table.cell(infoTable, 0, 1, "Last Closed:", text_color=color.white)
+    table.cell(infoTable, 1, 1, lastClosed, text_color=color.red)
