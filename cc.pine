@@ -9,3 +9,40 @@ plot(ema50, color=color.blue, title="50 EMA", force_overlay=true)
 plot(ema200, color=color.red, title="200 EMA", force_overlay=true)
 plot(atr1, color=color.white, title="ATR(1)")
 plot(atr14, color=color.yellow, title="ATR(14)")
+
+// --- Trading Sessions Configuration (UTC) ---
+session_tz = "UTC"
+tokyo_session  = input.session("0000-0900", title="Tokyo Session (UTC)")
+london_session = input.session("0800-1630", title="London Session (UTC)")
+ny_session     = input.session("1330-2000", title="New York Session (UTC)")
+
+// Session In-Window Checks
+in_tokyo  = not na(time(timeframe.period, tokyo_session,  session_tz))
+in_london = not na(time(timeframe.period, london_session, session_tz))
+in_ny     = not na(time(timeframe.period, ny_session,     session_tz))
+
+// Transition Detection
+tokyo_open   = in_tokyo  and not in_tokyo[1]
+tokyo_close  = not in_tokyo  and in_tokyo[1]
+
+london_open  = in_london and not in_london[1]
+london_close = not in_london and in_london[1]
+
+ny_open      = in_ny     and not in_ny[1]
+ny_close     = not in_ny     and in_ny[1]
+
+// Function to draw subtle vertical markers and labels on the main chart
+draw_session_marker(condition, txt, mark_color) =>
+    if condition and timeframe.isintraday
+        line.new(bar_index, high, bar_index, low, xloc=xloc.bar_index, extend=extend.both, color=color.new(mark_color, 80), style=line.style_dashed, width=1, force_overlay=true)
+        label.new(bar_index, high, text=txt, xloc=xloc.bar_index, yloc=yloc.abovebar, color=color.new(color.black, 100), textcolor=mark_color, size=size.small, style=label.style_none, force_overlay=true)
+
+// --- Plot Markers ---
+draw_session_marker(tokyo_open,   "Tokyo Open",    color.purple)
+draw_session_marker(tokyo_close,  "Tokyo Closed",  color.purple)
+
+draw_session_marker(london_open,  "London Open",   color.teal)
+draw_session_marker(london_close, "London Closed", color.teal)
+
+draw_session_marker(ny_open,      "New York Open", color.blue)
+draw_session_marker(ny_close,     "New York Closed", color.blue)
